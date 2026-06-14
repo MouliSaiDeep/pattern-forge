@@ -1,0 +1,1466 @@
+{
+  "info": {
+    "_postman_id": "8b2cd0a7-195f-4a3b-9a84-18c39fd509c2",
+    "name": "PatternForge API Playground",
+    "description": "Fully dynamic collection for all PatternForge REST endpoints.\n\n**Setup**: Set `baseUrl` variable (default: http://localhost:8080). Run folders in order — IDs are auto-captured between requests via test scripts.\n\n**Run order**: Use Collection Runner to execute all folders sequentially.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Composite Pattern",
+      "item": [
+        {
+          "name": "1.1 Get Dashboard Tree",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns tree with id field', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json.id).to.equal('root');",
+                  "  // Capture first widget id for later requests",
+                  "  const findWidget = (node) => {",
+                  "    if (node.type === 'WIDGET') return node.id;",
+                  "    if (node.children) for (const c of node.children) { const r = findWidget(c); if (r) return r; }",
+                  "    return null;",
+                  "  };",
+                  "  const widgetId = findWidget(json);",
+                  "  if (widgetId) pm.collectionVariables.set('widgetId', widgetId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/tree",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "tree"]
+            },
+            "description": "Returns the full Composite tree rooted at 'root'. Auto-captures first widget ID into {{widgetId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Create Container Node",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test('Response has id field', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('containerId', json.id);",
+                  "  console.log('Created container:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parentId\": \"root\",\n  \"name\": \"{{containerName}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/container",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "container"]
+            },
+            "description": "Creates a new container node under root. Stores the created container ID in {{containerId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Create Widget Node",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test('Response has id and type WIDGET', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json.type).to.equal('WIDGET');",
+                  "  pm.collectionVariables.set('newWidgetId', json.id);",
+                  "  console.log('Created widget:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parentId\": \"root\",\n  \"name\": \"{{widgetName}}\",\n  \"widgetType\": \"TEXT\",\n  \"config\": {\n    \"content\": \"Hello from Postman\",\n    \"bgColor\": \"bg-pf-surface\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/widget",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "widget"]
+            },
+            "description": "Creates a new widget node. Stores created widget ID in {{newWidgetId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Move Widget into Container",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/{{containerId}}/add/{{newWidgetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "{{containerId}}", "add", "{{newWidgetId}}"]
+            },
+            "description": "Nests {{newWidgetId}} inside {{containerId}}. Uses IDs captured from previous requests."
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Render Full Dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has htmlContent', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('htmlContent');",
+                  "  pm.expect(json.htmlContent).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/render-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "render-all"]
+            },
+            "description": "Renders the complete composite tree to HTML. Response includes htmlContent, renderTrace, metadata."
+          },
+          "response": []
+        },
+        {
+          "name": "1.6 Delete Widget Node",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 204', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/node/{{newWidgetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "node", "{{newWidgetId}}"]
+            },
+            "description": "Deletes the widget created in 1.3. Uses {{newWidgetId}} captured automatically."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Decorator Pattern",
+      "item": [
+        {
+          "name": "2.1 Get Decorator Stack",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Fallback if widgetId not set by previous folder",
+                  "if (!pm.collectionVariables.get('widgetId')) {",
+                  "  pm.collectionVariables.set('widgetId', 'widget-welcome');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators"]
+            },
+            "description": "Gets the current decorator stack for {{widgetId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Add BORDER Decorator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"BORDER\",\n  \"config\": {}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Add SHADOW Decorator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SHADOW\",\n  \"config\": {}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Add PADDING Decorator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"PADDING\",\n  \"config\": {}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Add THEME Decorator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"THEME\",\n  \"config\": {\n    \"themeName\": \"{{themeName}}\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.6 Reorder Decorator Stack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderedTypes\": [\"SHADOW\", \"BORDER\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators", "reorder"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.7 Remove BORDER Decorator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators/BORDER",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators", "BORDER"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.8 Reset All Decorators",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{widgetId}}/decorators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{widgetId}}", "decorators"]
+            },
+            "description": "Removes all decorators from the widget at once (reset)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Adapter Pattern",
+      "item": [
+        {
+          "name": "3.1 Create Adapted Chart (LegacyGraphLib)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has id', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('chartWidgetId', json.id);",
+                  "  console.log('Chart widget id:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"legacy\",\n  \"title\": \"Q2 Financials\",\n  \"dataPoints\": [15.2, 45.3, 23.1, 78.4, 56.0]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/chart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "chart"]
+            },
+            "description": "Uses LegacyGraphLib adapter. Stores chart widget id in {{chartWidgetId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Create Adapted Chart (OldChartLib)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has id', () => pm.expect(pm.response.json()).to.have.property('id'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"old\",\n  \"title\": \"Server Loads\",\n  \"dataPoints\": [88.1, 76.4, 91.3, 55.0]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/chart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "chart"]
+            },
+            "description": "Uses OldChartLib adapter with CSV translation."
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Create Native Chart (No Adapter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has id', () => pm.expect(pm.response.json()).to.have.property('id'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"new\",\n  \"title\": \"Memory Usage\",\n  \"dataPoints\": [34.5, 67.2, 89.0, 45.1]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/chart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "chart"]
+            },
+            "description": "Uses NativeChartWidget directly — no adapter layer."
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Get Adapter Translation Trace",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has trace field', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('trace');",
+                  "  pm.expect(json.trace).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/{{chartWidgetId}}/adapter-trace",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "{{chartWidgetId}}", "adapter-trace"]
+            },
+            "description": "Shows the type conversion pipeline used by the adapter. Uses {{chartWidgetId}} from 3.1."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Facade Pattern",
+      "item": [
+        {
+          "name": "4.1 Facade — Create Dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has dashboardId', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('dashboardId');",
+                  "  pm.collectionVariables.set('dashboardId', json.dashboardId);",
+                  "  console.log('Dashboard id:', json.dashboardId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{facadeDashboardName}}\",\n  \"columns\": 4,\n  \"rows\": 3,\n  \"theme\": \"dark\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/facade/create-dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "facade", "create-dashboard"]
+            },
+            "description": "Orchestrates: LayoutEngine → ThemeEngine → RenderEngine in one call. Stores {{dashboardId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Facade — Apply Theme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has applied field', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('applied');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dashboardId\": \"{{dashboardId}}\",\n  \"themeName\": \"neon\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/facade/apply-theme",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "facade", "apply-theme"]
+            },
+            "description": "Uses {{dashboardId}} captured in 4.1."
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Get Facade Call Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of log strings', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(json.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/facade/call-log",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "facade", "call-log"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.4 Subsystem — Calculate Grid (Direct)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns grid info', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('columns');",
+                  "  pm.expect(json).to.have.property('rows');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"columns\": 4,\n  \"rows\": 3\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subsystems/layout/calculate-grid",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subsystems", "layout", "calculate-grid"]
+            },
+            "description": "Calls LayoutEngine directly (bypassing the facade)."
+          },
+          "response": []
+        },
+        {
+          "name": "4.5 Subsystem — Apply Constraints (Direct)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"widgetId\": \"widget-welcome\",\n  \"constraints\": {\n    \"row\": 1,\n    \"col\": 1\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subsystems/layout/apply-constraints",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subsystems", "layout", "apply-constraints"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.6 Subsystem — Load Theme (Direct)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns theme config', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subsystems/theme/load?themeName=cyberpunk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subsystems", "theme", "load"],
+              "query": [{ "key": "themeName", "value": "cyberpunk" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.7 Subsystem — Apply Theme (Direct)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subsystems/theme/apply?widgetId=widget-welcome&themeName=sunset",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subsystems", "theme", "apply"],
+              "query": [
+                { "key": "widgetId", "value": "widget-welcome" },
+                { "key": "themeName", "value": "sunset" }
+              ]
+            },
+            "description": "NEW endpoint — was missing from previous collection."
+          },
+          "response": []
+        },
+        {
+          "name": "4.8 Subsystem — Prepare Render Context (Direct)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subsystems/render/prepare?dashboardId={{dashboardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subsystems", "render", "prepare"],
+              "query": [{ "key": "dashboardId", "value": "{{dashboardId}}" }]
+            },
+            "description": "NEW endpoint — was missing from previous collection."
+          },
+          "response": []
+        },
+        {
+          "name": "4.9 Subsystem — Execute Render (Direct)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns htmlContent', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('htmlContent');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subsystems/render/execute?widgetId=widget-welcome",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subsystems", "render", "execute"],
+              "query": [{ "key": "widgetId", "value": "widget-welcome" }]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Proxy Pattern",
+      "item": [
+        {
+          "name": "5.1 Get Virtual Proxy State (UNLOADED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns state field', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('state');",
+                  "  pm.expect(['UNLOADED', 'LOADING', 'LOADED']).to.include(json.state);",
+                  "  console.log('Proxy state:', json.state);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/lazy-video-1/proxy-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "lazy-video-1", "proxy-state"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5.2 Trigger Virtual Proxy Load",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/lazy-video-1/load",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "lazy-video-1", "load"]
+            },
+            "description": "Starts async 2-second load. Poll 5.1 again after ~2.5s to see LOADED state."
+          },
+          "response": []
+        },
+        {
+          "name": "5.3 Poll Proxy State (After Load)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('State is LOADING or LOADED', () => {",
+                  "  const state = pm.response.json().state;",
+                  "  pm.expect(['LOADING', 'LOADED']).to.include(state);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/widget/lazy-video-1/proxy-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "widget", "lazy-video-1", "proxy-state"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5.4 Set Role — GUEST",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"role\": \"GUEST\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/session/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "session", "role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5.5 Set Role — EDITOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"role\": \"EDITOR\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/session/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "session", "role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5.6 Set Role — ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"role\": \"ADMIN\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/session/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "session", "role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5.7 Get Audit Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of audit events', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  if (json.length > 0) {",
+                  "    pm.expect(json[0]).to.have.property('userId');",
+                  "    pm.expect(json[0]).to.have.property('widgetId');",
+                  "    pm.expect(json[0]).to.have.property('method');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit-log",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audit-log"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Bridge Pattern",
+      "item": [
+        {
+          "name": "6.1 Get Class Count (Before Bridge)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns withBridge and withoutBridge', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('withBridge');",
+                  "  pm.expect(json).to.have.property('withoutBridge');",
+                  "  pm.expect(json.withBridge).to.be.lessThan(json.withoutBridge);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bridge/class-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bridge", "class-count"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.2 Switch Renderer — HTML",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"renderer\": \"html\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/renderer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "renderer"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.3 Switch Renderer — JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"renderer\": \"json\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/renderer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "renderer"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.4 Switch Renderer — SVG",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"renderer\": \"svg\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/renderer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "renderer"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.5 Render All (with active renderer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('htmlContent not empty', () => {",
+                  "  pm.expect(pm.response.json().htmlContent).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/render-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "render-all"]
+            },
+            "description": "Renders using the renderer set in 6.2-6.4 (Bridge pattern in action)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Flyweight Pattern",
+      "item": [
+        {
+          "name": "7.1 Get Flyweight Pool (initial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/flyweight/pool",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "flyweight", "pool"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7.2 Query Memory Estimate (1000 instances)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has memory savings fields', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('withFlyweightBytes');",
+                  "  pm.expect(json).to.have.property('withoutFlyweightBytes');",
+                  "  pm.expect(json).to.have.property('savingsPercent');",
+                  "  pm.expect(json.withFlyweightBytes).to.be.lessThan(json.withoutFlyweightBytes);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/flyweight/memory-estimate?count={{flyweightCount}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "flyweight", "memory-estimate"],
+              "query": [{ "key": "count", "value": "{{flyweightCount}}" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7.3 Generate Bulk Instances",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns generated count and pool size', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('generated');",
+                  "  pm.expect(json.generated).to.equal(pm.collectionVariables.get('flyweightCount') * 1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count\": {{flyweightCount}},\n  \"widgetType\": \"STOCK_TICKER\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/flyweight/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "flyweight", "generate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7.4 Get Pool After Generation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Pool has at least one entry', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(json.length).to.be.greaterThan(0);",
+                  "  pm.expect(json[0]).to.have.property('type');",
+                  "  pm.expect(json[0]).to.have.property('instanceCount');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/flyweight/pool",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "flyweight", "pool"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7.5 Query Memory Estimate (5000 instances)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Savings > 80%', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.savingsPercent).to.be.greaterThan(80);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/flyweight/memory-estimate?count=5000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "flyweight", "memory-estimate"],
+              "query": [{ "key": "count", "value": "5000" }]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request: Ensure critical variables have defaults",
+          "if (!pm.collectionVariables.get('widgetId')) pm.collectionVariables.set('widgetId', 'widget-welcome');",
+          "if (!pm.collectionVariables.get('containerId')) pm.collectionVariables.set('containerId', 'root');",
+          "if (!pm.collectionVariables.get('chartWidgetId')) pm.collectionVariables.set('chartWidgetId', 'chart-1');",
+          "if (!pm.collectionVariables.get('dashboardId')) pm.collectionVariables.set('dashboardId', 'root');"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test: Flag any 5xx errors",
+          "if (pm.response.code >= 500) {",
+          "  pm.test('No server error', () => { pm.expect(pm.response.code).to.be.lessThan(500); });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base URL of the PatternForge server. Change this if deploying elsewhere."
+    },
+    {
+      "key": "widgetId",
+      "value": "widget-welcome",
+      "type": "string",
+      "description": "Auto-populated from 1.1 Get Tree. Fallback: widget-welcome."
+    },
+    {
+      "key": "containerId",
+      "value": "root",
+      "type": "string",
+      "description": "Auto-populated from 1.2 Create Container."
+    },
+    {
+      "key": "newWidgetId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-populated from 1.3 Create Widget."
+    },
+    {
+      "key": "chartWidgetId",
+      "value": "chart-1",
+      "type": "string",
+      "description": "Auto-populated from 3.1 Create Adapted Chart."
+    },
+    {
+      "key": "dashboardId",
+      "value": "root",
+      "type": "string",
+      "description": "Auto-populated from 4.1 Facade Create Dashboard."
+    },
+    {
+      "key": "containerName",
+      "value": "Postman Analytics Panel",
+      "type": "string",
+      "description": "Name for the container created in test 1.2."
+    },
+    {
+      "key": "widgetName",
+      "value": "Postman Test Widget",
+      "type": "string",
+      "description": "Name for the widget created in test 1.3."
+    },
+    {
+      "key": "themeName",
+      "value": "Neon",
+      "type": "string",
+      "description": "Theme name to pass to THEME decorator."
+    },
+    {
+      "key": "facadeDashboardName",
+      "value": "Control Center",
+      "type": "string",
+      "description": "Name for the dashboard created via facade in 4.1."
+    },
+    {
+      "key": "flyweightCount",
+      "value": "1000",
+      "type": "string",
+      "description": "Number of instances to generate in flyweight tests."
+    }
+  ]
+}
