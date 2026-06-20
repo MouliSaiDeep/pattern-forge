@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PatternForge — The Architect's Workbench</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'pf-base': '#0D1117',
+              'pf-surface': '#161B22',
+              'pf-elevated': '#21262D',
+              'pf-border': '#30363D',
+              'pf-border-strong': '#484F58',
+              'pf-text': '#E6EDF3',
+              'pf-text-secondary': '#8B949E',
+              'pf-text-muted': '#6E7681',
+              'pf-accent': '#2F81F7',
+              'pf-success': '#3FB950',
+              'pf-warning': '#D29922',
+              'pf-danger': '#F85149',
+            },
+            fontFamily: {
+              sans: ['"Inter"', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'monospace'],
+            },
+            fontSize: {
+              'title': ['20px', { lineHeight: '1.2', fontWeight: '600' }],
+              'panel': ['13px', { lineHeight: '1.3', fontWeight: '600' }],
+              'body': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+              'caption': ['12px', { lineHeight: '1.4', fontWeight: '400' }],
+            },
+            spacing: {
+              'nav': '160px',
+              'inspector': '280px',
+              'appbar': '48px',
+            },
+            borderRadius: {
+              'card': '8px',
+              'button': '6px',
+              'input': '6px',
+            }
+          }
+        }
+      }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- SockJS and STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script type="module" crossorigin src="/assets/index-Bls3sgqk.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CxXhD2G5.css">
+  </head>
+  <body class="bg-bgPrimary text-textSecondary min-h-screen antialiased overflow-hidden font-sans">
+    <div id="root"></div>
+  </body>
+</html>
